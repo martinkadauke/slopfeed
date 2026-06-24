@@ -11,7 +11,6 @@ const PUBLIC_PATHS = new Set([
   '/api/auth/login',
   '/api/auth/accept-invite',
   '/api/auth/invite-info',
-  '/api/push/vapid',
 ]);
 
 /** Global auth gate: every /api/* route except the public ones requires a valid JWT. */

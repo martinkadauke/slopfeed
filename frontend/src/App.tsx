@@ -1,12 +1,13 @@
-import { Routes, Route, Navigate, Link, Outlet, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, LogOut, Languages } from 'lucide-react';
+import { Loader2, LogOut, Languages, Newspaper, UserRound, Shield } from 'lucide-react';
 import { useAuth } from './lib/auth';
 import { setLanguage } from './i18n';
 import Login from './pages/Login';
 import AcceptInvite from './pages/AcceptInvite';
 import Feed from './pages/Feed';
 import Article from './pages/Article';
+import Profile from './pages/Profile';
 
 function Brand(): JSX.Element {
   return (
@@ -51,6 +52,40 @@ function TopBar(): JSX.Element {
   );
 }
 
+function BottomNav(): JSX.Element {
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const items = [
+    { to: '/', icon: <Newspaper size={22} />, label: t('nav.feed'), end: true },
+    { to: '/profile', icon: <UserRound size={22} />, label: t('nav.profile'), end: false },
+    ...(user?.is_admin ? [{ to: '/admin', icon: <Shield size={22} />, label: t('nav.admin'), end: false }] : []),
+  ];
+  return (
+    <nav
+      className="fixed inset-x-0 bottom-0 z-20 glass border-t border-white/5"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="mx-auto flex max-w-2xl items-stretch justify-around">
+        {items.map(it => (
+          <NavLink
+            key={it.to}
+            to={it.to}
+            end={it.end}
+            className={({ isActive }) =>
+              `flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition ${
+                isActive ? 'text-accent-soft' : 'text-white/45'
+              }`
+            }
+          >
+            {it.icon}
+            {it.label}
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 function FullscreenLoader(): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -73,6 +108,7 @@ function ProtectedShell(): JSX.Element {
       >
         <Outlet />
       </main>
+      <BottomNav />
     </div>
   );
 }
@@ -87,6 +123,7 @@ export default function App(): JSX.Element {
       <Route element={<ProtectedShell />}>
         <Route path="/" element={<Feed />} />
         <Route path="/a/:slug" element={<Article />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -10,6 +10,8 @@ import { registerAuth } from './auth/plugin.js';
 import { authRoutes } from './auth/routes.js';
 import { articleRoutes } from './routes/articles.js';
 import { meRoutes } from './routes/me.js';
+import { pushRoutes } from './routes/push.js';
+import { topicRoutes } from './routes/topics.js';
 
 async function main(): Promise<void> {
   await migrate();
@@ -39,6 +41,8 @@ async function main(): Promise<void> {
   authRoutes(app);
   articleRoutes(app);
   meRoutes(app);
+  pushRoutes(app);
+  topicRoutes(app);
 
   // Static SPA. Vite emits content-hashed assets under /assets/* (cache forever),
   // but index.html points at the current hashes and MUST always be revalidated —

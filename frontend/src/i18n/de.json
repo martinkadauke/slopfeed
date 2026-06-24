@@ -16,5 +16,30 @@
     "all": "Alle"
   },
   "article": { "back": "Zurück", "sources": "Quellen", "notFound": "Artikel nicht gefunden" },
-  "common": { "logout": "Abmelden", "save": "Speichern", "saved": "Gespeichert" }
+  "profile": {
+    "title": "Profil",
+    "language": "Sprache",
+    "timezone": "Zeitzone",
+    "quietHours": "Ruhezeiten (kein Push)",
+    "quietFrom": "von",
+    "quietTo": "bis",
+    "quietHint": "In diesem Zeitfenster (deine Ortszeit) werden Push-Benachrichtigungen aufgeschoben.",
+    "push": "Push-Benachrichtigungen",
+    "pushOn": "Auf diesem Gerät aktiv",
+    "pushOff": "Auf diesem Gerät aus",
+    "pushEnable": "Aktivieren",
+    "pushDisable": "Deaktivieren",
+    "pushTest": "Test senden",
+    "pushUnsupported": "Dieses Gerät/Browser unterstützt kein Push.",
+    "pushDenied": "Benachrichtigungen wurden blockiert – in den Browser-Einstellungen erlauben.",
+    "pushIosHint": "Auf iOS: zuerst über „Teilen → Zum Home-Bildschirm“ installieren.",
+    "topics": "Themen für Push",
+    "topicsHint": "Wähle, zu welchen Themen du benachrichtigt werden willst.",
+    "password": "Passwort ändern",
+    "oldPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "changePassword": "Passwort ändern",
+    "passwordChanged": "Passwort geändert"
+  },
+  "common": { "logout": "Abmelden", "save": "Speichern", "saved": "Gespeichert", "error": "Fehler" }
 }

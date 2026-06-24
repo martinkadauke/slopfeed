@@ -16,5 +16,30 @@
     "all": "All"
   },
   "article": { "back": "Back", "sources": "Sources", "notFound": "Article not found" },
-  "common": { "logout": "Log out", "save": "Save", "saved": "Saved" }
+  "profile": {
+    "title": "Profile",
+    "language": "Language",
+    "timezone": "Timezone",
+    "quietHours": "Quiet hours (no push)",
+    "quietFrom": "from",
+    "quietTo": "to",
+    "quietHint": "During this window (your local time) push notifications are deferred.",
+    "push": "Push notifications",
+    "pushOn": "On for this device",
+    "pushOff": "Off for this device",
+    "pushEnable": "Enable",
+    "pushDisable": "Disable",
+    "pushTest": "Send test",
+    "pushUnsupported": "This device/browser doesn't support push.",
+    "pushDenied": "Notifications are blocked – allow them in your browser settings.",
+    "pushIosHint": "On iOS: install via “Share → Add to Home Screen” first.",
+    "topics": "Topics for push",
+    "topicsHint": "Choose which topics you want to be notified about.",
+    "password": "Change password",
+    "oldPassword": "Current password",
+    "newPassword": "New password",
+    "changePassword": "Change password",
+    "passwordChanged": "Password changed"
+  },
+  "common": { "logout": "Log out", "save": "Save", "saved": "Saved", "error": "Error" }
 }
