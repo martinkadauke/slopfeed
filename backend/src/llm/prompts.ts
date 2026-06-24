@@ -18,6 +18,7 @@ export interface CurateResult {
   summary?: string;
   angle?: string;
   dedupe_key?: string;
+  search_title?: string;
   sources?: string[];
 }
 
@@ -26,7 +27,7 @@ export function curatePrompt(topic: string, hits: SearchHit[], recentHeadlines: 
     'You are a sharp, well-informed AI-news editor. From the web search results, pick the SINGLE most important and genuinely NEW development about the given topic. ' +
     'Skip anything already covered by the RECENT headlines, anything older than ~10 days, listicles, and pure marketing. ' +
     'If nothing is both new and noteworthy, return {"found": false}. ' +
-    'Respond ONLY with a JSON object: {"found": true, "summary": "2-4 sentence factual summary of the development", "angle": "why it matters in one line", "dedupe_key": "a short stable lowercase slug identifying this specific story", "sources": ["url", "..."]}.';
+    'Respond ONLY with a JSON object: {"found": true, "summary": "2-4 sentence factual summary of the development", "angle": "why it matters in one line", "dedupe_key": "a short stable lowercase slug identifying this specific story", "search_title": "a short PLAIN search phrase of 2-6 words — the key company/product/event names only, no styling, no quotes (e.g. \'Mistral OCR 4\' or \'CTERA n8n integration\') — used to find a discussion about THIS exact story", "sources": ["url", "..."]}.';
   const results = hits.map((h, i) => `[${i + 1}] ${h.title}\n${h.content}\n${h.url}`).join('\n\n');
   const recent = recentHeadlines.length ? recentHeadlines.map(h => `- ${h}`).join('\n') : '(none yet)';
   const user = `TOPIC: ${topic}\n\nRECENT (already covered, do NOT repeat):\n${recent}\n\nSEARCH RESULTS:\n${results}`;

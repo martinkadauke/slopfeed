@@ -55,46 +55,81 @@ async function searchNews(query: string): Promise<SearchHit[]> {
   return (data.results ?? []).slice(0, 8).map(r => ({ title: r.title ?? '', content: r.content ?? '', url: r.url ?? '' }));
 }
 
-/** Find the most relevant Reddit discussion thread for a story (best-effort).
- *  SearXNG's reddit engine is often disabled, so we use a site:reddit.com query
- *  and pick the first real thread (/r/<sub>/comments/...). */
-async function findRedditThread(query: string): Promise<{ url: string; title: string } | null> {
+/** Story-distinguishing terms of a query: words >=3 chars, minus the topic name
+ *  and a few stopwords. A reddit thread must mention >=1 of these to count as
+ *  "about THIS story" (not just the topic in general — e.g. not "What is n8n"). */
+function specificTerms(query: string, topicName: string): string[] {
+  const stop = new Set([
+    'the', 'and', 'for', 'with', 'from', 'site', 'reddit', 'com', 'new', 'ai',
+    ...topicName.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean),
+  ]);
+  return [...new Set(query.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !stop.has(w)))];
+}
+
+/** Find a Reddit thread about THIS specific story. Searches site:reddit.com for
+ *  the plain phrase and keeps only threads whose title contains a story-specific
+ *  term (best overlap wins) — so generic topic threads are rejected. */
+async function findRedditThread(query: string, topicName: string): Promise<{ url: string; title: string } | null> {
+  const terms = specificTerms(query, topicName);
+  if (!terms.length) return null;
   try {
     const base = await getConfig('searxng.url');
     const params = new URLSearchParams({ q: `${query} site:reddit.com`, format: 'json' });
     const res = await fetch(`${base}/search?${params}`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) return null;
     const data = (await res.json()) as { results?: { url?: string; title?: string }[] };
+    let best: { url: string; title: string; score: number } | null = null;
     for (const r of data.results ?? []) {
       const url = r.url ?? '';
-      if (/reddit\.com\/r\/[^/]+\/comments\//i.test(url)) {
-        return { url, title: r.title ?? 'Reddit discussion' };
-      }
+      if (!/reddit\.com\/r\/[^/]+\/comments\//i.test(url)) continue;
+      const title = (r.title ?? '').toLowerCase();
+      const score = terms.filter(t => title.includes(t)).length;
+      if (score === 0) continue; // not specific enough → skip
+      if (!best || score > best.score) best = { url, title: r.title ?? 'Reddit discussion', score };
     }
-    return null;
+    return best ? { url: best.url, title: best.title } : null;
   } catch {
     return null;
   }
 }
 
-/** Backfill reddit links for existing articles that don't have one yet. */
-export async function backfillRedditLinks(limit = 100): Promise<number> {
-  const rows = await sql`
-    SELECT a.id, a.headline_en, a.headline_de, t.name AS topic_name
-    FROM article a LEFT JOIN topic t ON t.id = a.topic_id
-    WHERE a.reddit_url IS NULL ORDER BY a.published_at DESC LIMIT ${limit}`;
-  let filled = 0;
-  for (const a of rows) {
-    const headline = (a.headline_en || a.headline_de || '') as string;
-    if (!headline) continue;
-    const reddit = await findRedditThread(`${a.topic_name ?? ''} ${headline}`.trim());
-    if (reddit) {
-      await sql`UPDATE article SET reddit_url = ${reddit.url}, reddit_title = ${reddit.title} WHERE id = ${a.id as number}`;
-      filled++;
-    }
+/** Derive a plain search phrase from an existing article (used by the backfill,
+ *  where no curated search_title exists). */
+async function extractSearchTitle(headline: string, hero: string, topicName: string): Promise<string> {
+  try {
+    const p = await providerForTask('curate');
+    const out = await p.chat({
+      system: 'Output ONLY a short plain search phrase of 2-6 words: the key company/product/event names of this AI-news story, no styling, no quotes, no extra punctuation. Example: "Mistral OCR 4" or "CTERA n8n integration".',
+      user: `Topic: ${topicName}\nHeadline: ${headline}\nTeaser: ${hero}`,
+    });
+    const phrase = out.trim().split('\n')[0].replace(/^["']|["']$/g, '').slice(0, 80);
+    return phrase || `${topicName} ${headline}`.slice(0, 80);
+  } catch {
+    return `${topicName} ${headline}`.slice(0, 80);
   }
-  console.log(`[news] reddit backfill: filled ${filled}/${rows.length}`);
-  return filled;
+}
+
+/** (Re)compute reddit links for articles whose search_title isn't set yet.
+ *  Overwrites old broad links — better no link than a wrong one. */
+export async function backfillRedditLinks(limit = 100): Promise<{ processed: number; linked: number }> {
+  const rows = await sql`
+    SELECT a.id, a.headline_en, a.headline_de, a.hero_en, a.hero_de, t.name AS topic_name
+    FROM article a LEFT JOIN topic t ON t.id = a.topic_id
+    WHERE a.search_title IS NULL ORDER BY a.published_at DESC LIMIT ${limit}`;
+  let linked = 0;
+  for (const a of rows) {
+    const topicName = (a.topic_name ?? '') as string;
+    const headline = (a.headline_en || a.headline_de || '') as string;
+    const hero = (a.hero_en || a.hero_de || '') as string;
+    const searchTitle = await extractSearchTitle(headline, hero, topicName);
+    const reddit = await findRedditThread(searchTitle, topicName);
+    await sql`
+      UPDATE article SET search_title = ${searchTitle}, reddit_url = ${reddit?.url ?? null}, reddit_title = ${reddit?.title ?? null}
+      WHERE id = ${a.id as number}`;
+    if (reddit) linked++;
+  }
+  console.log(`[news] reddit backfill: ${linked}/${rows.length} linked`);
+  return { processed: rows.length, linked };
 }
 
 /** Round-robin author: the active author with the fewest articles. */
@@ -150,15 +185,16 @@ async function processTopic(topic: { id: number; name: string; search_terms: str
   const en = primary === 'en' ? written : trans;
   const slug = `${slugify(written.headline)}-${shortHash(dedupe)}`;
   const sources = (curated.sources ?? []).map(u => ({ url: u }));
-  const reddit = await findRedditThread(`${topic.name} ${written.headline}`);
+  const searchTitle = (curated.search_title || topic.name).trim();
+  const reddit = await findRedditThread(searchTitle, topic.name);
 
   const [art] = await sql`
-    INSERT INTO article (slug, topic_id, author_id, headline_de, headline_en, hero_de, hero_en, body_de, body_en, sources, reddit_url, reddit_title, dedupe_key, status)
+    INSERT INTO article (slug, topic_id, author_id, headline_de, headline_en, hero_de, hero_en, body_de, body_en, sources, reddit_url, reddit_title, search_title, dedupe_key, status)
     VALUES (${slug}, ${topic.id}, ${author?.id ?? null},
             ${de?.headline ?? null}, ${en?.headline ?? null},
             ${de?.hero ?? null}, ${en?.hero ?? null},
             ${de?.body ?? null}, ${en?.body ?? null},
-            ${sql.json(sources)}, ${reddit?.url ?? null}, ${reddit?.title ?? null}, ${dedupe}, 'published')
+            ${sql.json(sources)}, ${reddit?.url ?? null}, ${reddit?.title ?? null}, ${searchTitle}, ${dedupe}, 'published')
     ON CONFLICT (slug) DO NOTHING
     RETURNING id`;
   if (!art) return 'skipped';

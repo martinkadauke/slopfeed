@@ -44,10 +44,7 @@ export function adminRoutes(app: FastifyInstance): void {
 
   app.get('/api/admin/news/status', { preHandler: requireAdmin }, async () => newsStatus());
 
-  app.post('/api/admin/articles/backfill-reddit', { preHandler: requireAdmin }, async () => {
-    const filled = await backfillRedditLinks(100);
-    return { filled };
-  });
+  app.post('/api/admin/articles/backfill-reddit', { preHandler: requireAdmin }, async () => backfillRedditLinks(100));
 
   // ── AI helpers (model lists + health) ────────────────────────────────────
   app.get('/api/admin/ai/models', { preHandler: requireAdmin }, async (req, reply) => {
