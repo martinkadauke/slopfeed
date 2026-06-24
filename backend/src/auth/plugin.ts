@@ -19,6 +19,8 @@ export function registerAuth(app: FastifyInstance): void {
     const url = req.url.split('?')[0];
     if (!url.startsWith('/api/')) return;
     if (PUBLIC_PATHS.has(url)) return;
+    // Public read access to published articles (viewing without login).
+    if (req.method === 'GET' && (url === '/api/articles' || url.startsWith('/api/articles/'))) return;
 
     // Service-to-service calls (e.g. internal triggers) use a shared secret.
     if (url.startsWith('/api/internal/')) {

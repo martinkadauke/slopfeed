@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, setToken } from './api';
-import { setLanguage } from '../i18n';
 
 export interface User {
   id: number;
@@ -31,7 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
 
   function applyUser(u: User): void {
     setUserState(u);
-    if (u.preferred_lang) setLanguage(u.preferred_lang);
   }
 
   useEffect(() => {

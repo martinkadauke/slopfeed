@@ -1,8 +1,7 @@
 import { Routes, Route, Navigate, Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, LogOut, Languages, Newspaper, UserRound, Shield } from 'lucide-react';
+import { Loader2, LogOut, Newspaper, UserRound, Shield } from 'lucide-react';
 import { useAuth } from './lib/auth';
-import { setLanguage } from './i18n';
 import Login from './pages/Login';
 import AcceptInvite from './pages/AcceptInvite';
 import Feed from './pages/Feed';
@@ -20,8 +19,6 @@ function Brand(): JSX.Element {
 
 function TopBar(): JSX.Element {
   const { user, logout } = useAuth();
-  const { i18n } = useTranslation();
-  const toggleLang = (): void => setLanguage(i18n.language === 'de' ? 'en' : 'de');
   return (
     <header className="sticky top-0 z-20 glass border-b border-white/5">
       <div
@@ -29,37 +26,28 @@ function TopBar(): JSX.Element {
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
       >
         <Brand />
-        <div className="flex items-center gap-1">
+        {user && (
           <button
-            onClick={toggleLang}
-            className="flex items-center gap-1 rounded-xl px-2 py-2 text-white/60 hover:bg-white/5 hover:text-white"
-            aria-label="language"
+            onClick={logout}
+            className="rounded-xl p-2 text-white/60 hover:bg-white/5 hover:text-white"
+            aria-label="logout"
           >
-            <Languages size={18} />
-            <span className="text-xs font-semibold uppercase">{i18n.language}</span>
+            <LogOut size={20} />
           </button>
-          {user && (
-            <button
-              onClick={logout}
-              className="rounded-xl p-2 text-white/60 hover:bg-white/5 hover:text-white"
-              aria-label="logout"
-            >
-              <LogOut size={20} />
-            </button>
-          )}
-        </div>
+        )}
       </div>
     </header>
   );
 }
 
-function BottomNav(): JSX.Element {
+function BottomNav(): JSX.Element | null {
   const { user } = useAuth();
   const { t } = useTranslation();
+  if (!user) return null; // viewing without login → no nav
   const items = [
     { to: '/', icon: <Newspaper size={22} />, label: t('nav.feed'), end: true },
     { to: '/profile', icon: <UserRound size={22} />, label: t('nav.profile'), end: false },
-    ...(user?.is_admin ? [{ to: '/admin', icon: <Shield size={22} />, label: t('nav.admin'), end: false }] : []),
+    ...(user.is_admin ? [{ to: '/admin', icon: <Shield size={22} />, label: t('nav.admin'), end: false }] : []),
   ];
   return (
     <nav
@@ -95,23 +83,23 @@ function FullscreenLoader(): JSX.Element {
   );
 }
 
-function ProtectedShell(): JSX.Element {
-  const { user, loading } = useAuth();
-  const loc = useLocation();
-  if (loading) return <FullscreenLoader />;
-  if (!user) return <Navigate to="/login" state={{ from: loc.pathname }} replace />;
+// Public shell — the feed + articles are viewable without login.
+function AppShell(): JSX.Element {
   return (
     <div className="mx-auto max-w-2xl">
       <TopBar />
-      <main
-        className="px-4 pt-4"
-        style={{ paddingBottom: 'max(6rem, env(safe-area-inset-bottom))' }}
-      >
+      <main className="px-4 pt-4" style={{ paddingBottom: 'max(6rem, env(safe-area-inset-bottom))' }}>
         <Outlet />
       </main>
       <BottomNav />
     </div>
   );
+}
+
+function RequireAuth({ children }: { children: JSX.Element }): JSX.Element {
+  const { user } = useAuth();
+  const loc = useLocation();
+  return user ? children : <Navigate to="/login" state={{ from: loc.pathname }} replace />;
 }
 
 function AdminOnly({ children }: { children: JSX.Element }): JSX.Element {
@@ -126,10 +114,10 @@ export default function App(): JSX.Element {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/invite" element={<AcceptInvite />} />
-      <Route element={<ProtectedShell />}>
+      <Route element={<AppShell />}>
         <Route path="/" element={<Feed />} />
         <Route path="/a/:slug" element={<Article />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
         <Route path="/admin" element={<AdminOnly><Admin /></AdminOnly>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -63,7 +63,7 @@ const DEFAULTS: AppConfig = {
   'news.cron': '0 6 * * *',       // 06:00 daily
   'news.max_per_topic': 1,
   'news.languages': ['de', 'en'],
-  'app.default_lang': 'de',
+  'app.default_lang': 'en',
   'app.base_url': 'https://slopfeed.giziko.online',
   'push.vapid_public': '',
   'push.vapid_private': '',

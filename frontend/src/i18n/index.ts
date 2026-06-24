@@ -10,8 +10,8 @@ void i18n.use(initReactI18next).init({
     de: { translation: de },
     en: { translation: en },
   },
-  lng: localStorage.getItem(LANG_KEY) ?? 'de',
-  fallbackLng: 'de',
+  lng: 'en', // forced English for now (language switching disabled)
+  fallbackLng: 'en',
   interpolation: { escapeValue: false },
 });
 
