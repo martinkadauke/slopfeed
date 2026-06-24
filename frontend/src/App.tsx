@@ -8,6 +8,7 @@ import AcceptInvite from './pages/AcceptInvite';
 import Feed from './pages/Feed';
 import Article from './pages/Article';
 import Profile from './pages/Profile';
+import Admin from './pages/Admin';
 
 function Brand(): JSX.Element {
   return (
@@ -113,6 +114,11 @@ function ProtectedShell(): JSX.Element {
   );
 }
 
+function AdminOnly({ children }: { children: JSX.Element }): JSX.Element {
+  const { user } = useAuth();
+  return user?.is_admin ? children : <Navigate to="/" replace />;
+}
+
 export default function App(): JSX.Element {
   const { loading } = useAuth();
   if (loading) return <FullscreenLoader />;
@@ -124,6 +130,7 @@ export default function App(): JSX.Element {
         <Route path="/" element={<Feed />} />
         <Route path="/a/:slug" element={<Article />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/admin" element={<AdminOnly><Admin /></AdminOnly>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
