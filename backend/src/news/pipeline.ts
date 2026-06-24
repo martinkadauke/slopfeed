@@ -55,6 +55,48 @@ async function searchNews(query: string): Promise<SearchHit[]> {
   return (data.results ?? []).slice(0, 8).map(r => ({ title: r.title ?? '', content: r.content ?? '', url: r.url ?? '' }));
 }
 
+/** Find the most relevant Reddit discussion thread for a story (best-effort).
+ *  SearXNG's reddit engine is often disabled, so we use a site:reddit.com query
+ *  and pick the first real thread (/r/<sub>/comments/...). */
+async function findRedditThread(query: string): Promise<{ url: string; title: string } | null> {
+  try {
+    const base = await getConfig('searxng.url');
+    const params = new URLSearchParams({ q: `${query} site:reddit.com`, format: 'json' });
+    const res = await fetch(`${base}/search?${params}`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { results?: { url?: string; title?: string }[] };
+    for (const r of data.results ?? []) {
+      const url = r.url ?? '';
+      if (/reddit\.com\/r\/[^/]+\/comments\//i.test(url)) {
+        return { url, title: r.title ?? 'Reddit discussion' };
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Backfill reddit links for existing articles that don't have one yet. */
+export async function backfillRedditLinks(limit = 100): Promise<number> {
+  const rows = await sql`
+    SELECT a.id, a.headline_en, a.headline_de, t.name AS topic_name
+    FROM article a LEFT JOIN topic t ON t.id = a.topic_id
+    WHERE a.reddit_url IS NULL ORDER BY a.published_at DESC LIMIT ${limit}`;
+  let filled = 0;
+  for (const a of rows) {
+    const headline = (a.headline_en || a.headline_de || '') as string;
+    if (!headline) continue;
+    const reddit = await findRedditThread(`${a.topic_name ?? ''} ${headline}`.trim());
+    if (reddit) {
+      await sql`UPDATE article SET reddit_url = ${reddit.url}, reddit_title = ${reddit.title} WHERE id = ${a.id as number}`;
+      filled++;
+    }
+  }
+  console.log(`[news] reddit backfill: filled ${filled}/${rows.length}`);
+  return filled;
+}
+
 /** Round-robin author: the active author with the fewest articles. */
 async function pickAuthor(): Promise<{ id: number; persona: string } | null> {
   const [a] = await sql`
@@ -108,14 +150,15 @@ async function processTopic(topic: { id: number; name: string; search_terms: str
   const en = primary === 'en' ? written : trans;
   const slug = `${slugify(written.headline)}-${shortHash(dedupe)}`;
   const sources = (curated.sources ?? []).map(u => ({ url: u }));
+  const reddit = await findRedditThread(`${topic.name} ${written.headline}`);
 
   const [art] = await sql`
-    INSERT INTO article (slug, topic_id, author_id, headline_de, headline_en, hero_de, hero_en, body_de, body_en, sources, dedupe_key, status)
+    INSERT INTO article (slug, topic_id, author_id, headline_de, headline_en, hero_de, hero_en, body_de, body_en, sources, reddit_url, reddit_title, dedupe_key, status)
     VALUES (${slug}, ${topic.id}, ${author?.id ?? null},
             ${de?.headline ?? null}, ${en?.headline ?? null},
             ${de?.hero ?? null}, ${en?.hero ?? null},
             ${de?.body ?? null}, ${en?.body ?? null},
-            ${sql.json(sources)}, ${dedupe}, 'published')
+            ${sql.json(sources)}, ${reddit?.url ?? null}, ${reddit?.title ?? null}, ${dedupe}, 'published')
     ON CONFLICT (slug) DO NOTHING
     RETURNING id`;
   if (!art) return 'skipped';

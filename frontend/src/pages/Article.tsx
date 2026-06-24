@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Loader2, ChevronLeft } from 'lucide-react';
+import { Loader2, ChevronLeft, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface ArticleFull {
@@ -12,6 +12,8 @@ interface ArticleFull {
   hero: string | null;
   body: string | null;
   sources: { title?: string; url: string }[];
+  reddit_url: string | null;
+  reddit_title: string | null;
   published_at: string;
   topic: { slug: string; name: string } | null;
   author: { name: string; emoji: string | null; tagline: string | null } | null;
@@ -66,6 +68,21 @@ export default function Article(): JSX.Element {
       <div className="prose-slop mt-5">
         <ReactMarkdown>{a.body ?? ''}</ReactMarkdown>
       </div>
+
+      {a.reddit_url && (
+        <a
+          href={a.reddit_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 flex items-center gap-3 rounded-2xl border border-[#ff4500]/30 bg-[#ff4500]/10 p-3 transition active:scale-[0.99]"
+        >
+          <MessageCircle size={20} className="shrink-0 text-[#ff4500]" />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-white">{t('article.reddit')}</div>
+            {a.reddit_title && <div className="truncate text-xs text-white/50">{a.reddit_title}</div>}
+          </div>
+        </a>
+      )}
 
       {a.sources?.length > 0 && (
         <div className="mt-8 border-t border-white/10 pt-4">

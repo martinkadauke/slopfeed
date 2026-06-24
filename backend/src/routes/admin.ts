@@ -4,7 +4,7 @@ import sql from '../db.js';
 import { requireAdmin } from '../auth/plugin.js';
 import { getAllConfig, setConfig, getConfig } from '../config.js';
 import { healthForProvider, listModelsForProvider, type ProviderName } from '../llm/provider.js';
-import { runNews, isNewsRunning, newsStatus } from '../news/pipeline.js';
+import { runNews, isNewsRunning, newsStatus, backfillRedditLinks } from '../news/pipeline.js';
 import { rescheduleNews } from '../news/scheduler.js';
 
 // Config values never echoed back in clear text (only whether they're set).
@@ -43,6 +43,11 @@ export function adminRoutes(app: FastifyInstance): void {
   });
 
   app.get('/api/admin/news/status', { preHandler: requireAdmin }, async () => newsStatus());
+
+  app.post('/api/admin/articles/backfill-reddit', { preHandler: requireAdmin }, async () => {
+    const filled = await backfillRedditLinks(100);
+    return { filled };
+  });
 
   // ── AI helpers (model lists + health) ────────────────────────────────────
   app.get('/api/admin/ai/models', { preHandler: requireAdmin }, async (req, reply) => {

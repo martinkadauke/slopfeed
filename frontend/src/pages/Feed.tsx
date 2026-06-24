@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MessageCircle } from 'lucide-react';
 import { api } from '../lib/api';
 
 export interface ArticleCard {
@@ -10,6 +10,7 @@ export interface ArticleCard {
   headline: string | null;
   hero: string | null;
   published_at: string;
+  reddit_url?: string | null;
   topic: { slug: string; name: string } | null;
   author: { name: string; emoji: string | null; tagline: string | null } | null;
 }
@@ -54,6 +55,7 @@ export default function Feed(): JSX.Element {
             {a.topic && <span className="chip">{a.topic.name}</span>}
             <span>·</span>
             <span>{timeAgo(a.published_at, i18n.language)}</span>
+            {a.reddit_url && <MessageCircle size={13} className="ml-auto text-[#ff4500]" />}
           </div>
           {/* tweet-like 140-char hero — the headline of the card */}
           <p className="font-display text-lg font-semibold leading-snug text-white">{a.hero}</p>

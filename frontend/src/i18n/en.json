@@ -15,7 +15,7 @@
     "by": "by",
     "all": "All"
   },
-  "article": { "back": "Back", "sources": "Sources", "notFound": "Article not found" },
+  "article": { "back": "Back", "sources": "Sources", "reddit": "Discussion on Reddit", "notFound": "Article not found" },
   "profile": {
     "title": "Profile",
     "language": "Language",

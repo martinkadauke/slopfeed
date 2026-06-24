@@ -21,6 +21,8 @@ function localize(row: Record<string, unknown>, lang: Lang): Record<string, unkn
     hero: pick('hero'),
     body: pick('body'),
     sources: row.sources ?? [],
+    reddit_url: row.reddit_url ?? null,
+    reddit_title: row.reddit_title ?? null,
     status: row.status,
     published_at: row.published_at,
     topic: row.topic_id ? { id: row.topic_id, slug: row.topic_slug, name: row.topic_name } : null,
