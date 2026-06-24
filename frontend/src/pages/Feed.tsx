@@ -15,12 +15,15 @@ export interface ArticleCard {
 }
 
 function timeAgo(iso: string, lang: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const h = Math.floor(diff / 3.6e6);
-  if (h < 1) return lang === 'de' ? 'gerade eben' : 'just now';
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}${lang === 'de' ? 'd' : 'd'}`;
+  const loc = lang || 'en';
+  const rtf = new Intl.RelativeTimeFormat(loc, { numeric: 'auto' });
+  const sec = (new Date(iso).getTime() - Date.now()) / 1000; // negative = past
+  const min = sec / 60, hr = min / 60, day = hr / 24;
+  if (Math.abs(sec) < 60) return loc.startsWith('de') ? 'gerade eben' : 'just now';
+  if (Math.abs(min) < 60) return rtf.format(Math.round(min), 'minute');
+  if (Math.abs(hr) < 24) return rtf.format(Math.round(hr), 'hour');
+  if (Math.abs(day) < 7) return rtf.format(Math.round(day), 'day');
+  return new Date(iso).toLocaleDateString(loc, { day: 'numeric', month: 'short' });
 }
 
 export default function Feed(): JSX.Element {
