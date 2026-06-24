@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { getConfig } from '../config.js';
-import { runNews, isNewsRunning } from './pipeline.js';
+import { runNews } from './pipeline.js';
 import { flushDueNotifications } from '../notify.js';
 
 let newsTask: cron.ScheduledTask | null = null;
@@ -18,7 +18,8 @@ export async function rescheduleNews(): Promise<void> {
     console.error(`[news] invalid cron "${schedule}", not scheduling`);
   } else {
     newsTask = cron.schedule(schedule, () => {
-      if (isNewsRunning()) return;
+      // runNews atomically claims a single 'running' row, so even if both
+      // replicas' crons fire, only one actually runs.
       runNews('cron').catch(e => console.error('[news] cron run failed:', e));
     });
     console.log(`[news] scheduled: ${schedule}`);

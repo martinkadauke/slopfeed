@@ -37,8 +37,8 @@ export function adminRoutes(app: FastifyInstance): void {
 
   // ── news pipeline (manual run + status) ───────────────────────────────────
   app.post('/api/admin/news/run', { preHandler: requireAdmin }, async (_req, reply) => {
-    if (isNewsRunning()) return reply.code(409).send({ error: 'already running' });
-    void runNews('manual'); // fire-and-forget; poll /news/status for progress
+    if (await isNewsRunning()) return reply.code(409).send({ error: 'already running' });
+    void runNews('manual').catch(e => console.error('[news] manual run failed:', e)); // fire-and-forget
     return { started: true };
   });
 
