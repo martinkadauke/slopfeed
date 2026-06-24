@@ -1,0 +1,20 @@
+{
+  "app": { "tagline": "Die wichtigsten KI-News. Täglich. Mit Haltung." },
+  "nav": { "feed": "Feed", "profile": "Profil", "admin": "Admin" },
+  "login": {
+    "title": "Anmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "submit": "Einloggen",
+    "error": "E-Mail oder Passwort falsch",
+    "inviteOnly": "slopfeed ist aktuell nur auf Einladung."
+  },
+  "feed": {
+    "empty": "Noch keine Artikel. Die erste Ausgabe kommt bald.",
+    "loading": "Lädt …",
+    "by": "von",
+    "all": "Alle"
+  },
+  "article": { "back": "Zurück", "sources": "Quellen", "notFound": "Artikel nicht gefunden" },
+  "common": { "logout": "Abmelden", "save": "Speichern", "saved": "Gespeichert" }
+}

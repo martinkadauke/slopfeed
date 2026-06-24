@@ -1,0 +1,20 @@
+{
+  "app": { "tagline": "The AI news that matter. Daily. With attitude." },
+  "nav": { "feed": "Feed", "profile": "Profile", "admin": "Admin" },
+  "login": {
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Log in",
+    "error": "Wrong email or password",
+    "inviteOnly": "slopfeed is currently invite-only."
+  },
+  "feed": {
+    "empty": "No articles yet. The first edition is coming soon.",
+    "loading": "Loading …",
+    "by": "by",
+    "all": "All"
+  },
+  "article": { "back": "Back", "sources": "Sources", "notFound": "Article not found" },
+  "common": { "logout": "Log out", "save": "Save", "saved": "Saved" }
+}
