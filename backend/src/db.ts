@@ -3,8 +3,12 @@ import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import bcrypt from 'bcryptjs';
 
-const DATABASE_URL =
-  process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/slopfeed';
+// .trim() strips any accidental leading BOM / surrounding whitespace from the
+// injected secret — a U+FEFF BOM makes postgres.js's new URL() throw, which
+// crash-loops the container on boot (JS trim() removes U+FEFF too).
+const DATABASE_URL = (
+  process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/slopfeed'
+).trim();
 
 const sql = postgres(DATABASE_URL, {
   onnotice: () => {},
