@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Trash2, Copy, Check, Bot, Hash, Settings, Mail, Users } from 'lucide-react';
+import { Loader2, Plus, Trash2, Copy, Check, Bot, Hash, Settings, Mail, Users, Play, Sparkles } from 'lucide-react';
 import { api } from '../lib/api';
 
 type Tab = 'authors' | 'topics' | 'ai' | 'invites' | 'users';
@@ -198,7 +198,47 @@ function AiTab(): JSX.Element {
       </section>
 
       <button onClick={save} className="btn-accent w-full">{saved ? <Check size={18} className="inline" /> : 'Alles speichern'}</button>
+
+      <NewsRunner />
     </div>
+  );
+}
+
+interface NewsStatus { running: boolean; lastRun: { at: string; created: number; skipped: number; errors: number } | null }
+function NewsRunner(): JSX.Element {
+  const qc = useQueryClient();
+  const [status, setStatus] = useState<NewsStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const load = async () => { try { setStatus(await api<NewsStatus>('/admin/news/status')); } catch { /* ignore */ } };
+  useEffect(() => { void load(); }, []);
+
+  const run = async () => {
+    setBusy(true);
+    try { await api('/admin/news/run', { method: 'POST' }); } catch { /* maybe already running */ }
+    const iv = setInterval(async () => {
+      const s = await api<NewsStatus>('/admin/news/status').catch(() => null);
+      if (s) setStatus(s);
+      if (s && !s.running) { clearInterval(iv); setBusy(false); void qc.invalidateQueries({ queryKey: ['articles'] }); }
+    }, 3000);
+  };
+
+  const lr = status?.lastRun;
+  return (
+    <section className="glass rounded-3xl p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <Sparkles size={18} className="text-accent-soft" />
+        <h2 className="font-display font-semibold">News jetzt generieren</h2>
+      </div>
+      <p className="mb-3 text-xs text-white/40">Läuft einmalig über alle aktiven Themen. Braucht einen konfigurierten LLM-Key + erreichbares SearXNG.</p>
+      <button onClick={run} disabled={busy || status?.running} className="btn-accent w-full disabled:opacity-50">
+        {busy || status?.running ? <><Loader2 size={16} className="inline animate-spin" /> läuft …</> : <><Play size={16} className="inline" /> Lauf starten</>}
+      </button>
+      {lr && (
+        <p className="mt-3 text-xs text-white/50">
+          Letzter Lauf: {new Date(lr.at).toLocaleString('de')} — {lr.created} erstellt, {lr.skipped} übersprungen, {lr.errors} Fehler
+        </p>
+      )}
+    </section>
   );
 }
 

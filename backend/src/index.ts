@@ -13,6 +13,7 @@ import { meRoutes } from './routes/me.js';
 import { pushRoutes } from './routes/push.js';
 import { topicRoutes } from './routes/topics.js';
 import { adminRoutes } from './routes/admin.js';
+import { rescheduleNews } from './news/scheduler.js';
 
 async function main(): Promise<void> {
   await migrate();
@@ -74,6 +75,8 @@ async function main(): Promise<void> {
   } else {
     app.log.warn(`no public dir at ${publicDir} — running API-only (dev mode)`);
   }
+
+  await rescheduleNews();
 
   await app.listen({ port: PORT, host: '0.0.0.0' });
   app.log.info(`slopfeed listening on :${PORT} (env=${APP_ENV})`);

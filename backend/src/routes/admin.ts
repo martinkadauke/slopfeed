@@ -4,6 +4,8 @@ import sql from '../db.js';
 import { requireAdmin } from '../auth/plugin.js';
 import { getAllConfig, setConfig, getConfig } from '../config.js';
 import { healthForProvider, listModelsForProvider, type ProviderName } from '../llm/provider.js';
+import { runNews, isNewsRunning, newsStatus } from '../news/pipeline.js';
+import { rescheduleNews } from '../news/scheduler.js';
 
 // Config values never echoed back in clear text (only whether they're set).
 const SECRET_KEYS = ['anthropic.api_key', 'deepseek.api_key', 'smtp.pass', 'push.vapid_private'];
@@ -28,8 +30,19 @@ export function adminRoutes(app: FastifyInstance): void {
       if (SECRET_KEYS.includes(key) && (value === '' || value == null)) continue;
       await setConfig(key, value, userId);
     }
+    // Apply any change to the news schedule immediately.
+    await rescheduleNews();
     return { ok: true };
   });
+
+  // ── news pipeline (manual run + status) ───────────────────────────────────
+  app.post('/api/admin/news/run', { preHandler: requireAdmin }, async (_req, reply) => {
+    if (isNewsRunning()) return reply.code(409).send({ error: 'already running' });
+    void runNews('manual'); // fire-and-forget; poll /news/status for progress
+    return { started: true };
+  });
+
+  app.get('/api/admin/news/status', { preHandler: requireAdmin }, async () => newsStatus());
 
   // ── AI helpers (model lists + health) ────────────────────────────────────
   app.get('/api/admin/ai/models', { preHandler: requireAdmin }, async (req, reply) => {
