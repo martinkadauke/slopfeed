@@ -44,7 +44,7 @@ export interface AppConfig {
 }
 
 const DEFAULTS: AppConfig = {
-  'ollama.url': 'http://192.168.1.238:11434',
+  'ollama.url': 'http://192.168.1.110:11434',
   'ollama.model': 'qwen2.5:14b',
   'deepseek.url': 'https://api.deepseek.com',
   'deepseek.api_key': '',
